@@ -333,9 +333,9 @@ const char strMenu1PGame[] PROGMEM ="1 PLAYER";
 const char strMenu2PGame[] PROGMEM ="2 PLAYER";
 const char strMenuVsCpuGame[] PROGMEM ="VS CPU";
 const char strMenuOptions[] PROGMEM ="OPTIONS";
-//const char strLines[] PROGMEM = "LINES";
-//const char strLevel[] PROGMEM = "LEVEL";
-//const char strScore[] PROGMEM = "SCORE";
+const char strLines[] PROGMEM = "LINES";
+const char strLevel[] PROGMEM = "LEVEL";
+const char strScore[] PROGMEM = "SCORE";
 
 const char strGameOver[] PROGMEM ="GAME OVER!";
 const char strYouWin[] PROGMEM ="YOU WIN!";
@@ -1884,21 +1884,20 @@ bool updateFields(void){
 				}
 
 				//update score, lines, etc
-				//commented out to save FLASH
 				if(clearCount!=0){
-					//fields[f].lines+=clearCount;
+					fields[f].lines+=clearCount;
 
-					//if(clearCount==1){
-					//	bonus=100;
-					//}else if(clearCount==2){
-					//	bonus=300;
-					//}else if(clearCount==3){
-					//	bonus=500;
-					//}else{
-					//	bonus=800;
-					//}
+					if(clearCount==1){
+						bonus=100;
+					}else if(clearCount==2){
+						bonus=300;
+					}else if(clearCount==3){
+						bonus=500;
+					}else{
+						bonus=800;
+					}
 	
-					//if(fields[f].backToBack!=0) bonus=(bonus*3)/2;
+					if(fields[f].backToBack!=0) bonus=(bonus*3)/2;
 
 					if(difficult){				
 						fields[f].backToBack++;
@@ -1906,9 +1905,9 @@ bool updateFields(void){
 						fields[f].backToBack=0;						
 					}
 			
-					//score=fields[f].score+=(fields[f].level*fields[f].height)*bonus;
+					score=fields[f].score+=(fields[f].level*fields[f].height)*bonus;
 			
-					//if(score>999999) fields[f].score=999999;
+					if(score>999999) fields[f].score=999999;
 				}
 				
 
@@ -1940,9 +1939,9 @@ bool updateFields(void){
 
 
 
-	//PrintLong(x,18,fields[f].lines);
-	//PrintLong(x,21,fields[f].level);
-	//PrintLong(x,24,fields[f].score);	
+	PrintLong(x,18,fields[f].lines);
+	PrintLong(x,21,fields[f].level);
+	PrintLong(x,24,fields[f].score);	
 
 
 	fields[f].subState++;
