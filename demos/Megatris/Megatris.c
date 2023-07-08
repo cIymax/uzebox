@@ -53,6 +53,10 @@ quite the idea. Program, have fun and don't care about CPU power, theres plenty 
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 #include <uzebox.h>
+//#include <limits.h>
+// fix
+#include <stdint.h>
+
 
 struct tetraminoStruct {
 				  char size;
@@ -269,7 +273,7 @@ void DrawLogo(void);
 void DrawMainMenu(void);
 void OptionsMenu(void);
 void restoreFields(void);
-
+void printFields();
 bool updateFieldsEvent(void);
 void processAnimations(unsigned char f);
 
@@ -326,8 +330,12 @@ struct fieldStruct {
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strWebsite[] PROGMEM ="HTTP://WWW.UZEBOX.ORG"; //"HTTP://WWW.BELOGIC.COM/UZEBOX";
-const char strLicence[] PROGMEM ="LICENCED UNDER GNU GPL V3";
+const char strRevisionAuthor[] PROGMEM ="SCORING EDITION BY CLYMAX";
+const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
+//const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
+//const char strWebsite[] PROGMEM ="RetroAchievements.org";
+//const char strWebsite[] PROGMEM ="HTTP://WWW.UZEBOX.ORG"; //"HTTP://WWW.BELOGIC.COM/UZEBOX";
+//const char strLicence[] PROGMEM ="LICENCED UNDER GNU GPL V3";
 
 const char strMenu1PGame[] PROGMEM ="1 PLAYER";
 const char strMenu2PGame[] PROGMEM ="2 PLAYER";
@@ -357,6 +365,10 @@ const char strNo[] PROGMEM = "NO ";
 const char strContinue[] PROGMEM ="RESUME";
 const char strRestart[] PROGMEM ="RESTART";
 
+//fix
+//const char strP1Prefix[] PROGMEM = "P1 ";
+//const char strP2Prefix[] PROGMEM = "P2 ";
+
 //import tunes
 #include "data/Korobeiniki-3tracks.inc"
 #include "data/testrisnt.inc"
@@ -377,11 +389,19 @@ int f=0; 					//active field
 bool vsMode=false; 			//two player mode
 bool restart=false;			//user choose to restart level
 bool goMenu=false;			//user choose to go back to menu
-unsigned char P1Level=20;	//Player 1 level
-unsigned char P2Level=20;	//Player 2 level
+//unsigned char P1Level=20;	//Player 1 level
+//unsigned char P2Level=20;	//Player 2 level
+unsigned char P1Level=1;	//Player 1 level
+unsigned char P2Level=1;	//Player 2 level
 unsigned char songNo=0;		//default song
 unsigned char maxSongNo=2;	//maximum number of songs
 
+//fix
+//unsigned int frameCount = 0;
+//unsigned int32_t frameCount = 0;
+unsigned int frameCountLowerHalf = 0;
+unsigned int frameCountUpperHalf = 0;
+bool vsCPU = false;
 
 
 /*
@@ -406,6 +426,9 @@ int main(){
 	DrawMainMenu();
 	SetTile(14,15+option,CURSOR_TILE); //draw cursor
 
+	//fix
+	fields[0].gameOver=true;
+	fields[1].gameOver=true;
 
 	while(1){
 		rnd+=13;
@@ -420,6 +443,12 @@ int main(){
 				game();
 			}else if(option==1 || option==2){
 				vsMode=true;
+				
+				//fix
+				if (option==2) {
+					vsCPU=true;
+				}
+				
 				game();
 			}else{
 				OptionsMenu();
@@ -633,10 +662,9 @@ void DrawMainMenu(){
 	
 	PrintChar(10,22,92);
 	Print(12,22,strCopyright);
-	Print(7,23,strLicence);
-	Print(9,25,strWebsite);
-	
-
+//	Print(7,23,strLicence);
+	Print(7,24,strRevisionAuthor);
+	Print(7,25,strWebsite);
 
 	//draw tetris TITLE
 	DrawMap(3,3,map_title);
@@ -671,6 +699,9 @@ void game(void){
 			restart=false;
 			goMenu=false;
 
+			// fix
+			//updateFields();
+
 			while(fields[0].gameOver==false && fields[1].gameOver==false){
 				//syncronize gameplay on vsync (30 hz)	
 				WaitVsync(1);
@@ -682,6 +713,14 @@ void game(void){
 					f=1;
 					runStateMachine();
 					processAnimations(1);
+				}
+				
+				//fix
+				if ((!vsMode && !fields[0].gameOver) || (vsMode && !fields[0].gameOver && !fields[1].gameOver)) {
+					frameCountLowerHalf++;
+					if (frameCountLowerHalf == 0) {
+						frameCountUpperHalf++;
+					}
 				}
 
 			}
@@ -904,11 +943,15 @@ void processAnimations(unsigned char f){
 
 void runStateMachine(){
 	unsigned char next,op;
+	// fix
+	//bool updateFieldsResult;
 
 	next=fields[f].currentState;
 	
 	switch(next){
 		case 0:
+			//fix
+			printFields();
 			if(processGravity()==true){
 				TriggerFx(4,0x90,true);
 				fields[f].subState=0;
@@ -935,10 +978,20 @@ void runStateMachine(){
 			}
 			break;			
 		case 4:
+			// fix
+			//updateFieldsResult = updateFields();
 			if(updateFields()==true){
 				fields[f].subState=0;
 				next=5;
 			}
+			//fix
+			//else {
+			//	printFields();
+			//}
+			/*else {
+				fields[f].subState=0;
+				next=5;
+			}*/
 			break;	
 		case 5:
 			if(processGarbage()==true){
@@ -947,7 +1000,6 @@ void runStateMachine(){
 			}
 			break;	
 		case 6:
-
 			issueNewBlock(NEW_BLOCK);
 			updateGhostPiece(false);
 			next=0;
@@ -1036,7 +1088,8 @@ void initFields(void){
 	issueNewBlock(NEW_BLOCK);
 	fields[f].currBlock=fields[f].nextBlock;
 	issueNewBlock(NEW_BLOCK);
-	updateFields();//updateStats(0,0,0,0);
+	updateFields();
+	//updateStats(0,0,0,0);
 	updateGhostPiece(false);
 
 	if(vsMode==true){
@@ -1044,10 +1097,14 @@ void initFields(void){
 		issueNewBlock(NEW_BLOCK);
 		fields[f].currBlock=fields[f].nextBlock;
 		issueNewBlock(NEW_BLOCK);
-		updateFields();//updateStats(0,0,0,0);
+		updateFields();
+		//updateStats(0,0,0,0);
 		updateGhostPiece(false);
 	}
 
+	frameCountLowerHalf = 0;
+	frameCountUpperHalf = 0;
+	vsCPU = false;
 
 }
 
@@ -1791,9 +1848,13 @@ bool animFields(void){
 
 bool updateFields(void){
 
+	//add score and bonus declarations
+	unsigned long score = 0;
+	unsigned int bonus = 0;
 
 	//scan the surface for completed rows
-	int x,y,size,tail,clearCount,top, garbageLines=0,fx;	
+	//int x,y,size,tail,clearCount,top, garbageLines=0,fx;	
+	int y,size,tail,clearCount,top, garbageLines=0,fx;	
 	bool difficult=false;;
 
 	size=pgm_read_byte(&(tetraminos[fields[f].currBlock].size));
@@ -1905,9 +1966,18 @@ bool updateFields(void){
 						fields[f].backToBack=0;						
 					}
 			
+					//fix
 					score=fields[f].score+=(fields[f].level*fields[f].height)*bonus;
+					//score=fields[f].score+=((fields[f].level+1)*(fields[f].height+1))*bonus;
 			
-					if(score>999999) fields[f].score=999999;
+					//if(score>999999) fields[f].score=999999;
+					//if(score>999999999) fields[f].score=999999999;
+					//if(score>3999999999) fields[f].score=3999999999;
+					if(score>4000000000) fields[f].score=4000000000;
+					//if(score>4,294,967,295) fields[f].score=4,294,967,295;
+					//if(score>ULONG_MAX) fields[f].score=ULONG_MAX;
+					//if(score>ULONG_MAX) fields[f].score=ULONG_MAX;
+					
 				}
 				
 
@@ -1931,17 +2001,22 @@ bool updateFields(void){
 	}
 
 	//print scores, lines,etc
+	/*
 	if(f==0){
-		x=19;
+		//x=19;
+		//x=23;
+		//x=25;
+		x=24;
 	}else{
 		x=27;
 	}
+	*/
 
 
-
-	PrintLong(x,18,fields[f].lines);
-	PrintLong(x,21,fields[f].level);
-	PrintLong(x,24,fields[f].score);	
+	//PrintLong(x,18,fields[f].lines);
+	//PrintLong(x,21,fields[f].level);
+	//PrintLong(x,24,fields[f].score);	
+	printFields();
 
 
 	fields[f].subState++;
@@ -1949,7 +2024,59 @@ bool updateFields(void){
 	
 }
 
-
+//fix
+void printFields() {
+	
+	//fix
+	if ( fields[f].backToBackAnimFrame > 0
+		|| fields[f].tSpinAnimFrame > 0
+		|| fields[f].tetrisAnimFrame > 0 ) {
+		return;
+	}
+	
+	if (!vsMode) {
+		int x;
+		if(f==0){
+			x=24;
+		}else{
+			x=27;
+		}
+		
+		Print(x-7,17,PSTR("LINES"));
+		PrintLong(x,18,fields[f].lines);
+		Print(x-7,19,PSTR("LEVEL"));
+		PrintLong(x,20,fields[f].level);
+		Print(x-7,21,PSTR("SCORE"));
+		PrintLong(x,22,fields[f].score);
+	}
+	else {
+		//int x, y;
+		int x;
+		x=24;
+		//char *p;
+		if(f==0){
+			//p = strP1Prefix;
+			Print(x-5,3,PSTR("P1"));
+			Print(x-7,4,PSTR("LINES"));
+			PrintLong(x,5,fields[f].lines);
+			Print(x-7,6,PSTR("LEVEL"));
+			PrintLong(x,7,fields[f].level);
+			Print(x-7,8,PSTR("SCORE"));
+			PrintLong(x,9,fields[f].score);
+		}else{
+			//p = strP2Prefix;
+			Print(x-5,16,PSTR("P2"));
+			Print(x-7,17,PSTR("LINES"));
+			PrintLong(x,18,fields[f].lines);
+			Print(x-7,19,PSTR("LEVEL"));
+			PrintLong(x,20,fields[f].level);
+			Print(x-7,21,PSTR("SCORE"));
+			PrintLong(x,22,fields[f].score);
+		}
+		
+	}
+	
+}
 
 void copyFieldLines(int rowSource,int rowDest,int len){
 
