@@ -30,6 +30,9 @@
 			<map var-name="map_anim_backtoback3" left="0" top="5" width="5" height="3"/>
 			<map var-name="map_anim_backtoback2" left="10" top="5" width="5" height="3"/>
 			<map var-name="map_anim_backtoback1" left="15" top="5" width="5" height="3"/>									
+			
+			<map var-name="map_anim_all" left="28" top="3" width="5" height="1"/>
+			<map var-name="map_anim_clear" left="28" top="4" width="5" height="1"/>
 		</maps>	
 
 	</output>
