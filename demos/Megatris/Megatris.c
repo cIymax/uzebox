@@ -232,6 +232,7 @@ const struct tetraminoStruct tetraminos[] PROGMEM={
 #define ANIM_BACK_TO_BACK 0
 #define ANIM_T_SPIN 1
 #define ANIM_TETRIS 2
+#define ANIM_ALL_CLEAR 3
 
 //declare custom assembly functions
 extern void RestoreTile(char x,char y);
@@ -311,6 +312,7 @@ struct fieldStruct {
 					unsigned char softDropDelay;
 					bool kickUp;
 					bool useGhostBlock;
+					bool useAdvancedMode;
 					unsigned char backToBack;
 					unsigned char garbageQueue;
 					unsigned char surface[22][10];
@@ -325,12 +327,14 @@ struct fieldStruct {
 					unsigned char tSpinAnimFrame;
 					unsigned char backToBackAnimFrame;
 					unsigned char tetrisAnimFrame;
+					unsigned char allClearAnimFrame;
+					bool allClear;
 					};
 
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strRevisionAuthor[] PROGMEM ="SCORING EDITION BY CLYMAX";
+const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1.01 BY CLYMAX";
 const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
 //const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
 //const char strWebsite[] PROGMEM ="RetroAchievements.org";
@@ -361,6 +365,9 @@ const char strPlay[] PROGMEM = "PLAY";
 const char strUseGhostBlock[] PROGMEM="GHOST BLOCK:";
 const char strYes[] PROGMEM = "YES";
 const char strNo[] PROGMEM = "NO ";
+const char strScoringMode[] PROGMEM="SCORING MODE:";
+const char strAdvanced[] PROGMEM = "ADVANCED";
+const char strOriginal[] PROGMEM = "ORIGINAL";
 
 const char strContinue[] PROGMEM ="RESUME";
 const char strRestart[] PROGMEM ="RESTART";
@@ -370,7 +377,7 @@ const char strRestart[] PROGMEM ="RESTART";
 //const char strP2Prefix[] PROGMEM = "P2 ";
 
 //import tunes
-#include "data/Korobeiniki-3tracks.inc"
+//#include "data/Korobeiniki-3tracks.inc"
 #include "data/testrisnt.inc"
 #include "data/ending.inc"
 
@@ -394,7 +401,8 @@ bool goMenu=false;			//user choose to go back to menu
 unsigned char P1Level=1;	//Player 1 level
 unsigned char P2Level=1;	//Player 2 level
 unsigned char songNo=0;		//default song
-unsigned char maxSongNo=2;	//maximum number of songs
+//unsigned char maxSongNo=2;	//maximum number of songs
+unsigned char maxSongNo=1;	//maximum number of songs
 
 //fix
 //unsigned int frameCount = 0;
@@ -417,6 +425,9 @@ int main(){
 	
 	fields[0].useGhostBlock=true;
 	fields[1].useGhostBlock=true;
+	
+	fields[0].useAdvancedMode=true;
+	fields[1].useAdvancedMode=true;
 
 	SetFontTable(fonts);
 	SetTileTable(tetrisTiles);
@@ -507,9 +518,9 @@ void StartSongNo(unsigned char songNo){
 		case 0:
 			StartSong(song_testrisnt);
 			break;				
-		case 1:
-			StartSong(song_korobeiniki);
-			break;				
+		//case 1:
+		//	StartSong(song_korobeiniki);
+		//	break;				
 			
 	}
 }
@@ -537,7 +548,14 @@ void OptionsMenu(){
 	Print(11,16,PSTR("P2 LEVEL:"));
 	PrintByte(11+11,16,P2Level,true);
 
-	Print(11,17,strBackToMenu);
+	Print(11,17,strScoringMode);
+	if(fields[0].useAdvancedMode==true){
+		Print(11+14,17,strAdvanced);
+	}else{
+		Print(11+14,17,strOriginal);
+	}
+
+	Print(11,18,strBackToMenu);
 
 	SetTile(10,13+option,CURSOR_TILE); //draw cursor
 
@@ -556,7 +574,7 @@ void OptionsMenu(){
 					StartSongNo(songNo);
 					playing=true;
 				}
-			}else if(option==4){
+			}else if(option==5){
 				StopSong();
 				return;
 			}
@@ -588,12 +606,23 @@ void OptionsMenu(){
 				P2Level--;
 				PrintByte(11+11,16,P2Level,true);
 				TriggerFx(1,0x90,true);
+			}else if(option==4){
+				TriggerFx(1,0x90,true);
+				if(fields[0].useAdvancedMode==true){
+					Print(11+14,17,strOriginal);
+					fields[0].useAdvancedMode=false;
+					fields[1].useAdvancedMode=false;
+				}else{
+					Print(11+14,17,strAdvanced);
+					fields[0].useAdvancedMode=true;
+					fields[1].useAdvancedMode=true;
+				}				
 			}
 
 			while(ReadJoypad(0)!=0); //wait for key release	
 		}
 		if(c&BTN_RIGHT){
-			if(option==0 && songNo<3){
+			if(option==0 && songNo<3 && maxSongNo > 1){
 				songNo++;
 				PrintHexByte(17,13,songNo);
 				TriggerFx(1,0x90,true);
@@ -618,6 +647,18 @@ void OptionsMenu(){
 				PrintByte(11+11,16,P2Level,true);
 				TriggerFx(1,0x90,true);
 			}
+			else if(option==4){
+				TriggerFx(1,0x90,true);
+				if(fields[0].useAdvancedMode==true){
+					Print(11+14,17,strOriginal);
+					fields[0].useAdvancedMode=false;
+					fields[1].useAdvancedMode=false;
+				}else{
+					Print(11+14,17,strAdvanced);
+					fields[0].useAdvancedMode=true;
+					fields[1].useAdvancedMode=true;
+				}				
+			}
 
 			while(ReadJoypad(0)!=0); //wait for key release	
 		}
@@ -628,13 +669,13 @@ void OptionsMenu(){
 
 			if(c&BTN_UP){
 				if(option==0){
-					option=4;
+					option=5;
 				}else{
 					option--;
 				}
 
 			}else if(c&BTN_DOWN || c&BTN_SELECT){
-				if(option==4){
+				if(option==5){
 					option=0;
 				}else{
 					option++;
@@ -663,8 +704,9 @@ void DrawMainMenu(){
 	PrintChar(10,22,92);
 	Print(12,22,strCopyright);
 //	Print(7,23,strLicence);
-	Print(7,24,strRevisionAuthor);
-	Print(7,25,strWebsite);
+	//Print(7,24,strRevisionAuthor);
+	Print(4,24,strRevisionAuthor);
+	Print(7,26,strWebsite);
 
 	//draw tetris TITLE
 	DrawMap(3,3,map_title);
@@ -802,6 +844,9 @@ void startAnimation(unsigned char type){
 		
 		fields[f].tetrisAnimFrame=45; //90;
 	}
+	if(type==ANIM_ALL_CLEAR){	
+		fields[f].allClearAnimFrame=45; //90;
+	}
 }
 
 //animate non-locking stuff
@@ -882,6 +927,44 @@ void processAnimations(unsigned char f){
 				
 		}	
 		fields[f].tSpinAnimFrame--;
+	}
+
+	//ALL CLEAR
+	if(fields[f].allClearAnimFrame>0){
+		if(f==0){
+			dx=14;		
+		}else{
+			dx=21;
+		}
+		dy=22;
+
+		switch(fields[f].allClearAnimFrame){			
+			case 1:
+				//Fill(dx,dy,7,4,BG_TILE);
+				restore(dx,dy,7,4);
+				break;
+			case 2: //3:			
+			case 45: //90:
+				DrawMap(dx,dy,map_anim_spark1);
+				break;
+			case 3: //6:
+			case 44://87:				
+				DrawMap(dx,dy,map_anim_spark2);
+				break;
+			case 4: //9:
+			case 43: //84:				
+				DrawMap(dx,dy,map_anim_spark3);
+				break;
+			case 5: //2:
+			case 42: //81:
+				DrawMap(dx,dy,map_anim_spark4);
+				break;			
+			case 41: //78:
+				DrawMap(dx+1,dy+1,map_anim_all);
+				DrawMap(dx+1,dy+2,map_anim_clear);
+				
+		}	
+		fields[f].allClearAnimFrame--;
 	}
 
 	//TETRIS
@@ -1056,9 +1139,11 @@ void initFields(void){
 		fields[x].garbageQueue=0;
 		fields[x].backToBack=0;
 		fields[x].tSpin=false;
+		fields[x].allClear=false;
 		fields[x].tSpinAnimFrame=0;
 		fields[x].tetrisAnimFrame=0;
-
+		fields[x].allClearAnimFrame=0;
+		
 		//fields[x].lastClearedLines=0;
 		//fields[x].animClearLinesPhase=INACTIVE;
 	}
@@ -1898,7 +1983,27 @@ bool updateFields(void){
 				
 				TriggerFx(10,0xa0,true);
 
-	
+				//new: check for all clear
+				bool allClear = true;
+				int xit, yit;
+				//fields[f].allClear = true;
+				/*
+				for(top=0;top<size;top++){
+					if(!lineCleared(top)){
+						allClear = false;
+					}
+				}
+				*/
+				for(yit=0;yit<FIELD_HEIGHT;yit++){
+					for(xit=0;xit<FIELD_WIDTH;xit++){
+						//printHexByte((x*3)+3,3,fields[f].surface[y][x]);
+						if(fields[f].surface[yit][xit]!=0){
+							allClear = false;
+							break;
+						}		
+					}
+				}
+				fields[f].allClear = allClear;
 
 				//Process garbage lines 
 				if(clearCount>0){
@@ -1915,7 +2020,7 @@ bool updateFields(void){
 						}
 					}
 
-					if(garbageLines==4 || fields[f].tSpin==true){
+					if(garbageLines==4 || fields[f].tSpin==true || fields[f].allClear==true){
 						difficult=true;
 					}
 
@@ -1930,7 +2035,13 @@ bool updateFields(void){
 
 						startAnimation(ANIM_BACK_TO_BACK);
 					}
-
+					
+					// all clear
+					if(fields[f].allClear==true){
+						garbageLines+=10;
+						
+						startAnimation(ANIM_ALL_CLEAR);
+					}
 	
 					//send garbage lines to the other field(in 2 players mode)
 					if(vsMode==true){
@@ -1949,13 +2060,40 @@ bool updateFields(void){
 					fields[f].lines+=clearCount;
 
 					if(clearCount==1){
-						bonus=100;
+						if(fields[f].useAdvancedMode==true && fields[f].tSpin==true) {
+							bonus=800;
+						}
+						else {
+							bonus=100;
+						}
+						if(fields[f].useAdvancedMode==true && fields[f].allClear==true) {
+							bonus+=800;
+						}
 					}else if(clearCount==2){
-						bonus=300;
+						if(fields[f].useAdvancedMode==true && fields[f].tSpin==true) {
+							bonus=1200;
+						}
+						else {
+							bonus=300;
+						}
+						if(fields[f].useAdvancedMode==true && fields[f].allClear==true) {
+							bonus+=1200;
+						}
 					}else if(clearCount==3){
-						bonus=500;
+						if(fields[f].useAdvancedMode==true && fields[f].tSpin==true) {
+							bonus=1600;
+						}
+						else {
+							bonus=500;
+						}
+						if(fields[f].useAdvancedMode==true && fields[f].allClear==true) {
+							bonus+=1800;
+						}
 					}else{
 						bonus=800;
+						if(fields[f].useAdvancedMode==true && fields[f].allClear==true) {
+							bonus+=2000;
+						}
 					}
 	
 					if(fields[f].backToBack!=0) bonus=(bonus*3)/2;
@@ -1992,11 +2130,13 @@ bool updateFields(void){
 				}
 
 				fields[f].tSpin=false;
+				fields[f].allClear=false;
 				return true;
 		
 		}
 	}else{
 		fields[f].tSpin=false;
+		fields[f].allClear=false;
 		return true;
 	}
 
@@ -2030,7 +2170,8 @@ void printFields() {
 	//fix
 	if ( fields[f].backToBackAnimFrame > 0
 		|| fields[f].tSpinAnimFrame > 0
-		|| fields[f].tetrisAnimFrame > 0 ) {
+		|| fields[f].tetrisAnimFrame > 0
+		|| fields[f].allClearAnimFrame > 0		) {
 		return;
 	}
 	
