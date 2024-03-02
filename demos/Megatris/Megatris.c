@@ -209,7 +209,7 @@ const struct tetraminoStruct tetraminos[] PROGMEM={
 
 #define O_TETRAMINO 3
 #define T_TETRAMINO 4
-#define I_TRETRAMINO 5
+#define I_TETRAMINO 5
 #define BG_TILE 21
 #define CURSOR_TILE 11
 
@@ -233,6 +233,9 @@ const struct tetraminoStruct tetraminos[] PROGMEM={
 #define ANIM_T_SPIN 1
 #define ANIM_TETRIS 2
 #define ANIM_ALL_CLEAR 3
+
+#define MAX_STARTING_LEVEL 30
+#define MIN_STARTING_LEVEL 0
 
 //declare custom assembly functions
 extern void RestoreTile(char x,char y);
@@ -320,7 +323,7 @@ struct fieldStruct {
 					unsigned char nextBlockPosY;
 					unsigned char holdBlockPosX;
 					unsigned char holdBlockPosY;
-					unsigned char bag[7];			//the random bag of pieces
+					unsigned char bag[14];			//the random bag of pieces
 					unsigned char bagPos;
 					bool tSpin;		   //t-spin detected on last lock 1,2,3 (or zero=no t-spin)
 					bool lastOpIsRotation;		//true if last move was a rotation (gravity, or move -> false)
@@ -329,12 +332,13 @@ struct fieldStruct {
 					unsigned char tetrisAnimFrame;
 					unsigned char allClearAnimFrame;
 					bool allClear;
+					bool newGame;
 					};
 
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1.01 BY CLYMAX";
+const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1,01 BY CLYMAX";
 const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
 //const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
 //const char strWebsite[] PROGMEM ="RetroAchievements.org";
@@ -398,8 +402,10 @@ bool restart=false;			//user choose to restart level
 bool goMenu=false;			//user choose to go back to menu
 //unsigned char P1Level=20;	//Player 1 level
 //unsigned char P2Level=20;	//Player 2 level
-unsigned char P1Level=1;	//Player 1 level
-unsigned char P2Level=1;	//Player 2 level
+//unsigned char P1Level=1;	//Player 1 level
+//unsigned char P2Level=1;	//Player 2 level
+unsigned char P1Level=0;	//Player 1 level
+unsigned char P2Level=0;	//Player 2 level
 unsigned char songNo=0;		//default song
 //unsigned char maxSongNo=2;	//maximum number of songs
 unsigned char maxSongNo=1;	//maximum number of songs
@@ -410,6 +416,7 @@ unsigned char maxSongNo=1;	//maximum number of songs
 unsigned int frameCountLowerHalf = 0;
 unsigned int frameCountUpperHalf = 0;
 bool vsCPU = false;
+//bool newGame = true;
 
 
 /*
@@ -466,6 +473,8 @@ int main(){
 			}
 
 			DrawMainMenu();
+			// menu improvement
+			option=0;
 			SetTile(14,15+option,CURSOR_TILE); //draw cursor
 			
 			
@@ -527,7 +536,7 @@ void StartSongNo(unsigned char songNo){
 
 void OptionsMenu(){
 	unsigned char c,option=0;
-	bool playing=false;
+	//bool playing=false;
 
 	ClearVram();
 	
@@ -566,6 +575,8 @@ void OptionsMenu(){
 			
 			while(ReadJoypad(0)!=0); //wait for key release
 			
+			return;
+			/*
 			if(option==0){
 				if(playing==true){
 					StopSong();
@@ -578,7 +589,7 @@ void OptionsMenu(){
 				StopSong();
 				return;
 			}
-
+			*/
 			
 		}
 		
@@ -602,8 +613,16 @@ void OptionsMenu(){
 				P1Level--;
 				PrintByte(11+11,15,P1Level,true);
 				TriggerFx(1,0x90,true);
+			}else if(option==2 && P1Level==0){
+				P1Level=MAX_STARTING_LEVEL;
+				PrintByte(11+11,15,P1Level,true);
+				TriggerFx(1,0x90,true);
 			}else if(option==3 && P2Level>0){
 				P2Level--;
+				PrintByte(11+11,16,P2Level,true);
+				TriggerFx(1,0x90,true);
+			}else if(option==3 && P2Level==0){
+				P2Level=MAX_STARTING_LEVEL;
 				PrintByte(11+11,16,P2Level,true);
 				TriggerFx(1,0x90,true);
 			}else if(option==4){
@@ -618,7 +637,8 @@ void OptionsMenu(){
 					fields[1].useAdvancedMode=true;
 				}				
 			}
-
+			
+			//if (option!=2 && option!=3)
 			while(ReadJoypad(0)!=0); //wait for key release	
 		}
 		if(c&BTN_RIGHT){
@@ -637,13 +657,22 @@ void OptionsMenu(){
 					fields[0].useGhostBlock=true;
 					fields[1].useGhostBlock=true;
 				}				
-			}else if(option==2 && P1Level<30){
+			}else if(option==2 && P1Level<MAX_STARTING_LEVEL){
 				P1Level++;
 				PrintByte(11+11,15,P1Level,true);
 				TriggerFx(1,0x90,true);
 	
-			}else if(option==3 && P2Level<30){
+			}else if(option==2 && P1Level==MAX_STARTING_LEVEL){
+				P1Level=0;
+				PrintByte(11+11,15,P1Level,true);
+				TriggerFx(1,0x90,true);
+	
+			}else if(option==3 && P2Level<MAX_STARTING_LEVEL){
 				P2Level++;
+				PrintByte(11+11,16,P2Level,true);
+				TriggerFx(1,0x90,true);
+			}else if(option==3 && P2Level==MAX_STARTING_LEVEL){
+				P2Level=0;
 				PrintByte(11+11,16,P2Level,true);
 				TriggerFx(1,0x90,true);
 			}
@@ -660,6 +689,7 @@ void OptionsMenu(){
 				}				
 			}
 
+			//if (option!=2 && option!=3)
 			while(ReadJoypad(0)!=0); //wait for key release	
 		}
 
@@ -740,6 +770,8 @@ void game(void){
 		 	fields[1].currentState=0;
 			restart=false;
 			goMenu=false;
+			
+			//newGame = true;
 
 			// fix
 			//updateFields();
@@ -936,7 +968,7 @@ void processAnimations(unsigned char f){
 		}else{
 			dx=21;
 		}
-		dy=22;
+		dy=23;
 
 		switch(fields[f].allClearAnimFrame){			
 			case 1:
@@ -1131,9 +1163,11 @@ void initFields(void){
 		fields[x].currBlockRotation=0;
 		fields[x].holdBlock=NO_BLOCK;
 		fields[x].nextBlock=0;
+		//fields[x].nextBlock=-1;
 		fields[x].canHold=true;
 		fields[x].ghostBlockY=UNDEFINED;
-		fields[x].bagPos=7;
+		//fields[x].bagPos=7;
+		fields[x].bagPos=0;
 		fields[x].nextBlockPosY=13;
 		fields[x].holdBlockPosY=2;
 		fields[x].garbageQueue=0;
@@ -1143,9 +1177,12 @@ void initFields(void){
 		fields[x].tSpinAnimFrame=0;
 		fields[x].tetrisAnimFrame=0;
 		fields[x].allClearAnimFrame=0;
+		//fields[x].bag[7]=7;
 		
 		//fields[x].lastClearedLines=0;
 		//fields[x].animClearLinesPhase=INACTIVE;
+		
+		fields[x].newGame = true;
 	}
 
 	//set field specifics
@@ -1168,11 +1205,11 @@ void initFields(void){
 
 	
 
-	//issue twice to have a "next" block randomly defined
+	//vanilla: issue twice to have a "next" block randomly defined	
 	f=0;
 	issueNewBlock(NEW_BLOCK);
-	fields[f].currBlock=fields[f].nextBlock;
-	issueNewBlock(NEW_BLOCK);
+	//fields[f].currBlock=fields[f].nextBlock;
+	//issueNewBlock(NEW_BLOCK);
 	updateFields();
 	//updateStats(0,0,0,0);
 	updateGhostPiece(false);
@@ -1180,8 +1217,8 @@ void initFields(void){
 	if(vsMode==true){
 		f=1;
 		issueNewBlock(NEW_BLOCK);
-		fields[f].currBlock=fields[f].nextBlock;
-		issueNewBlock(NEW_BLOCK);
+		//fields[f].currBlock=fields[f].nextBlock;
+		//issueNewBlock(NEW_BLOCK);
 		updateFields();
 		//updateStats(0,0,0,0);
 		updateGhostPiece(false);
@@ -1320,50 +1357,136 @@ int randomize(void){
 }
 
 void issueNewBlock(int block){
-
-	char b1,b2,b3,b4,b5,b6,b7;
-	int next=0;
+	//char b1,b2,b3,b4,b5,b6,b7;
+	char b1[2],b2[2],b3[2],b4[2],b5[2],b6[2],b7[2];
+	//int nextBlockTemp=0;
+	//int nextBlockTemp=-1;
+	//bool inc=false;
 	
 	if(block==NEW_BLOCK){
-
-		if(fields[f].bagPos==7){
-			//time to fill a new bag 
-						
-			b1=randomize();
-			b2=randomize();while (b2==b1){b2=randomize();}
-			b3=randomize();while (b3==b2||b3==b1){b3=randomize();}
-			b4=randomize();while (b4==b3||b4==b2||b4==b1){b4=randomize();}
-			b5=randomize();while (b5==b4||b5==b3||b5==b2||b5==b1){b5=randomize();}
-			b6=randomize();while (b6==b5||b6==b4||b6==b3||b6==b2||b6==b1){b6=randomize();}
-			b7=randomize();while (b7==b6||b7==b5||b7==b4||b7==b3||b7==b2||b7==b1){b7=randomize();}
-
-			fields[f].bag[0]=b1;
-			fields[f].bag[1]=b2;
-			fields[f].bag[2]=b3;
-			fields[f].bag[3]=b4;
-			fields[f].bag[4]=b5;
-			fields[f].bag[5]=b6;
-			fields[f].bag[6]=b7;
-
-			next=b1;
-
-			fields[f].bagPos=1;
-		}else{
-			next=fields[f].bag[fields[f].bagPos];
-			fields[f].bagPos++;
+		
+		if (fields[f].newGame) {
+			fields[f].newGame = false;
+			for (int i=0; i<2; i++) {
+				b1[i]=randomize();
+				b2[i]=randomize();while (b2[i]==b1[i]){b2[i]=randomize();}
+				b3[i]=randomize();while (b3[i]==b2[i]||b3[i]==b1[i]){b3[i]=randomize();}
+				b4[i]=randomize();while (b4[i]==b3[i]||b4[i]==b2[i]||b4[i]==b1[i]){b4[i]=randomize();}
+				b5[i]=randomize();while (b5[i]==b4[i]||b5[i]==b3[i]||b5[i]==b2[i]||b5[i]==b1[i]){b5[i]=randomize();}
+				b6[i]=randomize();while (b6[i]==b5[i]||b6[i]==b4[i]||b6[i]==b3[i]||b6[i]==b2[i]||b6[i]==b1[i]){b6[i]=randomize();}
+				b7[i]=randomize();while (b7[i]==b6[i]||b7[i]==b5[i]||b7[i]==b4[i]||b7[i]==b3[i]||b7[i]==b2[i]||b7[i]==b1[i]){b7[i]=randomize();}
+				
+				fields[f].bag[i*7]=b1[i];
+				fields[f].bag[i*7+1]=b2[i];
+				fields[f].bag[i*7+2]=b3[i];
+				fields[f].bag[i*7+3]=b4[i];
+				fields[f].bag[i*7+4]=b5[i];
+				fields[f].bag[i*7+5]=b6[i];
+				fields[f].bag[i*7+6]=b7[i];
+			}
 		}
+		else if (fields[f].bagPos==7) {
+			int h=0, i=1;
+			fields[f].bag[h*7]=fields[f].bag[i*7];
+			fields[f].bag[h*7+1]=fields[f].bag[i*7+1];
+			fields[f].bag[h*7+2]=fields[f].bag[i*7+2];
+			fields[f].bag[h*7+3]=fields[f].bag[i*7+3];
+			fields[f].bag[h*7+4]=fields[f].bag[i*7+4];
+			fields[f].bag[h*7+5]=fields[f].bag[i*7+5];
+			fields[f].bag[h*7+6]=fields[f].bag[i*7+6];
+			
+			b1[i]=randomize();
+			b2[i]=randomize();while (b2[i]==b1[i]){b2[i]=randomize();}
+			b3[i]=randomize();while (b3[i]==b2[i]||b3[i]==b1[i]){b3[i]=randomize();}
+			b4[i]=randomize();while (b4[i]==b3[i]||b4[i]==b2[i]||b4[i]==b1[i]){b4[i]=randomize();}
+			b5[i]=randomize();while (b5[i]==b4[i]||b5[i]==b3[i]||b5[i]==b2[i]||b5[i]==b1[i]){b5[i]=randomize();}
+			b6[i]=randomize();while (b6[i]==b5[i]||b6[i]==b4[i]||b6[i]==b3[i]||b6[i]==b2[i]||b6[i]==b1[i]){b6[i]=randomize();}
+			b7[i]=randomize();while (b7[i]==b6[i]||b7[i]==b5[i]||b7[i]==b4[i]||b7[i]==b3[i]||b7[i]==b2[i]||b7[i]==b1[i]){b7[i]=randomize();}
+			
+			fields[f].bag[i*7]=b1[i];
+			fields[f].bag[i*7+1]=b2[i];
+			fields[f].bag[i*7+2]=b3[i];
+			fields[f].bag[i*7+3]=b4[i];
+			fields[f].bag[i*7+4]=b5[i];
+			fields[f].bag[i*7+5]=b6[i];
+			fields[f].bag[i*7+6]=b7[i];
+		}
+			
+			//nextBlock=b1[0];
+			//fields[f].bagPos=1;
+			//fix
+			//if (fields[f].bagPos==7) {
+			//	fields[f].bagPos=0;
+			//}
+			//fields[f].bagPos++;
+			//nextBlockTemp=fields[f].bag[fields[f].bagPos];
+			//inc=true;
+
+		//}else{
+			//fields[f].bagPos++;
+			//nextBlockTemp=fields[f].bag[fields[f].bagPos];
+			//fields[f].bagPos++;
+			//inc=true;
+		//}
 		
 	}else{
-		next=block;
+		//nextBlockTemp=block;
+		//debug
+		//doGameOver();
 	}
 	
-	//update the next block
-	drawTetramino(fields[f].nextBlockPosX,fields[f].nextBlockPosY,fields[f].nextBlock,0,0,true,false);
-	drawTetramino(fields[f].nextBlockPosX,fields[f].nextBlockPosY,next,0,0,false,false);
+	//fix: update state
+	//fields[f].currBlock=fields[f].nextBlock;
+	//fields[f].nextBlock=nextBlockTemp;
+	if (fields[f].bagPos==7) {
+		fields[f].bagPos=0;
+	}
+	fields[f].currBlock=fields[f].bag[fields[f].bagPos];
+	fields[f].bagPos++;
+	fields[f].nextBlock=fields[f].bag[fields[f].bagPos];
+	// display: bagPos 1, 2, 3, 4, 5, 6, | 7, 1
+	// attempt: bagPos 1, 2, 3, 4, 5, 6 | 0, 1
+	
+	//update the "next" blocks
+	//erase first
+	//for (int i=0; i<7; i++) {
+	for (int i=0; i<6; i++) {
+		//if (i==6) break;
+		if (i==0) {
+			if (f==0) {
+				restore(fields[f].nextBlockPosX-3*2,fields[f].nextBlockPosY-3*(4-i)+1,7,4);
+			}
+			else if (f==1) {
+				restore(fields[f].nextBlockPosX+3*2,fields[f].nextBlockPosY-3*(4-i)+1,7,4);
+			}
+		}
+		else
+			restore(fields[f].nextBlockPosX,fields[f].nextBlockPosY-3*(5-i),7,4);
+	}
+	int count = 0;
+	//for (int i=fields[f].bagPos; i<7; i++) {
+	for (int i=fields[f].bagPos; i<14; i++) {
+	//for (int i=(fields[f].bagPos==7 ? 0 : fields[f].bagPos); i<14; i++) {
+		if (count==6) break;
+		// bagPos: 1, 2, 3, 4, 5, 6, 7 | 
+		if (count==0) {
+			//drawTetramino(fields[f].nextBlockPosX-3*2,fields[f].nextBlockPosY-3*(4-count)+1,fields[f].nextBlock,0,0,true,false);
+			if (f==0) {
+				drawTetramino(fields[f].nextBlockPosX-3*2,fields[f].nextBlockPosY-3*(4-count)+1,fields[f].bag[i],0,0,false,false);
+			}
+			else if (f==1) {
+				drawTetramino(fields[f].nextBlockPosX+3*2,fields[f].nextBlockPosY-3*(4-count)+1,fields[f].bag[i],0,0,false,false);
+			}
+		}
+		else {
+			//drawTetramino(fields[f].nextBlockPosX,fields[f].nextBlockPosY-3*(5-count),fields[f].nextBlock,0,0,true,false);
+			drawTetramino(fields[f].nextBlockPosX,fields[f].nextBlockPosY-3*(5-count),fields[f].bag[i],0,0,false,false);
+		}
+		count++;
+	}
 
-
-	fields[f].currBlock=fields[f].nextBlock;
-	fields[f].nextBlock=next;
+	//fields[f].currBlock=fields[f].nextBlock;
+	//fields[f].nextBlock=nextBlockTemp;
 
 	fields[f].currBlockX=3;
 	fields[f].currBlockY=0;
@@ -1371,6 +1494,8 @@ void issueNewBlock(int block){
 	fields[f].kickUp=false;
 	fields[f].canHold=true;
 	
+	//if (inc==true)
+	//	fields[f].bagPos++;
 
 	//check if game over
 	if(!moveBlock(fields[f].currBlockX,fields[f].currBlockY))
@@ -1690,7 +1815,8 @@ bool fitCheck(int x,int y,int block,int rotation){
 			tile=pgm_read_byte(&(tetraminos[block].blocks[rotation][(cy*s)+cx]));
 			if(tile!=0){
 				//check field boundaries
-				if((y+cy)>FIELD_HEIGHT-1 || (x+cx)<0 || (x+cx)>FIELD_WIDTH-1) return false;
+				//if((y+cy)>FIELD_HEIGHT-1 || (x+cx)<0 || (x+cx)>FIELD_WIDTH-1) return false;
+				if((y+cy)<0 || (y+cy)>FIELD_HEIGHT-1 || (x+cx)<0 || (x+cx)>FIELD_WIDTH-1) return false;
 				
 				//check for collisions with surface blocks
 				if(fields[f].surface[y+cy][x+cx]!=0) return false;
@@ -1727,6 +1853,7 @@ bool rotateBlock(int newRotation){
 
 	if(!fitCheck(x,y,fields[f].currBlock,newRotation)){
 		//try simple wall kicks
+		/*
 		if(fitCheck(x+1,y,fields[f].currBlock,newRotation)){
 			x++;
 		}else{
@@ -1736,7 +1863,7 @@ bool rotateBlock(int newRotation){
 				if(fitCheck(x,y-1,fields[f].currBlock,fields[f].currBlockRotation) && fitCheck(x,y-1,fields[f].currBlock,newRotation)){
 					y--;
 					fields[f].kickUp=true;
-				}else{
+				}else{*/
 					
 					//special srs moves
 					if(rotateRight==true && fitCheck(x-1,y+1,fields[f].currBlock,newRotation)){
@@ -1745,32 +1872,73 @@ bool rotateBlock(int newRotation){
 					}else if(rotateRight==true && fitCheck(x-1,y+2,fields[f].currBlock,newRotation)){
 						x--;
 						y+=2;
+					}else if(rotateRight==true && fitCheck(x+1,y+1,fields[f].currBlock,newRotation)){ // advanced edition
+						x++;
+						y++;
 					}else if(rotateRight==false && fitCheck(x+1,y+1,fields[f].currBlock,newRotation)){
 						x++;
 						y++;
 					}else if(rotateRight==false && fitCheck(x+1,y+2,fields[f].currBlock,newRotation)){
 						x++;
 						y+=2;
+					}else if(rotateRight==false && fitCheck(x-1,y+1,fields[f].currBlock,newRotation)){ // advanced edition
+						x--;
+						y++;
 					}else{
 						
 						//test 2 blocks for I tetramino
-						if(fitCheck(x+2,y,fields[f].currBlock,newRotation)){
+						if(fields[f].currBlock==I_TETRAMINO && fitCheck(x+2,y,fields[f].currBlock,newRotation)){
 							x+=2;
 						}else{
-							if(fitCheck(x-2,y,fields[f].currBlock,newRotation)){
+							if(fields[f].currBlock==I_TETRAMINO && fitCheck(x-2,y,fields[f].currBlock,newRotation)){
 								x-=2;
 							}else{
-								return false;
+								if(fields[f].currBlock==I_TETRAMINO && fitCheck(x+2,y+1,fields[f].currBlock,newRotation)){ // advanced edition
+									x+=2;
+									y++;
+								}else{
+									if(fields[f].currBlock==I_TETRAMINO && fitCheck(x-2,y-1,fields[f].currBlock,newRotation)){ // advanced edition
+										x-=2;
+										y--;
+										fields[f].kickUp=true;
+									}else{
+										if(fields[f].currBlock==I_TETRAMINO && fitCheck(x,y+2,fields[f].currBlock,newRotation)){ // advanced edition
+											y+=2;
+										}else{
+											if(fields[f].currBlock==I_TETRAMINO && fitCheck(x,y-2,fields[f].currBlock,newRotation)){ // advanced edition
+												y-=2;
+												fields[f].kickUp=true;
+											}else{
+												//return false;
+												
+												//try simple wall kicks											
+												if(fitCheck(x+1,y,fields[f].currBlock,newRotation)){
+													x++;
+												}else{
+													if(fitCheck(x-1,y,fields[f].currBlock,newRotation)){
+														x--;
+													}else{
+														if(fitCheck(x,y-1,fields[f].currBlock,fields[f].currBlockRotation) && fitCheck(x,y-1,fields[f].currBlock,newRotation)){
+															y--;
+															fields[f].kickUp=true;
+														}else{
+															return false;
+														}
+													}
+												}
+											}	
+										}
+									}
+								}
 							}	
 						}
 
 					}
-
 				
 					
-				}
-			}
-		}
+		//		}
+		//	}
+		//}
 	}
 
 
@@ -2105,7 +2273,13 @@ bool updateFields(void){
 					}
 			
 					//fix
-					score=fields[f].score+=(fields[f].level*fields[f].height)*bonus;
+					if (fields[f].useAdvancedMode) {
+						score=fields[f].score+=((fields[f].level+1)*fields[f].height)*bonus;
+					}
+					else {
+						score=fields[f].score+=((fields[f].level)*fields[f].height)*bonus;
+					}
+					//score=fields[f].score+=(fields[f].level*fields[f].height)*bonus;
 					//score=fields[f].score+=((fields[f].level+1)*(fields[f].height+1))*bonus;
 			
 					//if(score>999999) fields[f].score=999999;
@@ -2192,9 +2366,32 @@ void printFields() {
 	}
 	else {
 		//int x, y;
-		int x;
-		x=24;
+		int x=24;
+		//int y=12;
 		//char *p;
+		if(f==0){
+			//p = strP1Prefix;
+			//Print(x-5,3,PSTR("P1"));
+			//Print(x-7,4,PSTR("LINES"));
+			PrintInt(x-5,18,fields[f].lines,false);
+			//Print(x-7,6,PSTR("LEVEL"));
+			PrintInt(x-5,20,fields[f].level,false);
+			//Print(x-7,8,PSTR("SCORE"));
+			PrintInt(x-5,22,fields[f].score/1000,false);
+		}else{
+			//p = strP2Prefix;
+			//Print(x-5,16,PSTR("P2"));
+			Print(x-6,17,PSTR("LINES"));
+			PrintInt(x,18,fields[f].lines,false);
+			Print(x-6,19,PSTR("LEVEL"));
+			PrintInt(x,20,fields[f].level,false);
+			Print(x-6,21,PSTR("SCORE"));
+			PrintInt(x,22,fields[f].score/1000,false);
+
+			Print(x-4,22,PSTR("K"));
+			Print(x+1,22,PSTR("K"));
+		}
+		/*
 		if(f==0){
 			//p = strP1Prefix;
 			Print(x-5,3,PSTR("P1"));
@@ -2214,6 +2411,7 @@ void printFields() {
 			Print(x-7,21,PSTR("SCORE"));
 			PrintLong(x,22,fields[f].score);
 		}
+		*/
 		
 	}
 	
