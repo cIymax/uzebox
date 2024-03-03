@@ -365,7 +365,7 @@ struct fieldStruct {
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1.01 BY CLYMAX";
+const char strRevisionAuthor[] PROGMEM ="ARCADE EDITION V1.01 BY CLYMAX";
 const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
 //const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
 //const char strWebsite[] PROGMEM ="RetroAchievements.org";
@@ -397,7 +397,7 @@ const char strUseGhostBlock[] PROGMEM="GHOST BLOCK:";
 const char strYes[] PROGMEM = "YES";
 const char strNo[] PROGMEM = "NO ";
 const char strScoringMode[] PROGMEM="SCORING MODE:";
-const char strAdvanced[] PROGMEM = "ADVANCED";
+const char strAdvanced[] PROGMEM = "ARCADE";
 const char strOriginal[] PROGMEM = "ORIGINAL";
 
 const char strContinue[] PROGMEM ="RESUME";
