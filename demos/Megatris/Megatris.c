@@ -237,6 +237,27 @@ const struct tetraminoStruct tetraminos[] PROGMEM={
 #define MAX_STARTING_LEVEL 30
 #define MIN_STARTING_LEVEL 0
 
+#define CLEAR_INAPPLICABLE -1
+
+#define CLEAR_TYPE_INAPPLICABLE -1
+#define CLEAR_TYPE_NONE 0
+#define CLEAR_TYPE_SINGLE 1
+#define CLEAR_TYPE_DOUBLE 2
+#define CLEAR_TYPE_TRIPLE 3
+#define CLEAR_TYPE_TETRIS 4
+
+#define TSPIN_INAPPLICABLE -1
+#define TSPIN_ABSENT 0
+#define TSPIN_PRESENT 1
+
+#define PC_INAPPLICABLE -1
+#define PC_ABSENT 0
+#define PC_PRESENT 1
+
+#define B2B_INAPPLICABLE -1
+#define B2B_ABSENT 0
+#define B2B_PRESENT 1
+
 //declare custom assembly functions
 extern void RestoreTile(char x,char y);
 extern void LoadMap(void);
@@ -333,12 +354,18 @@ struct fieldStruct {
 					unsigned char allClearAnimFrame;
 					bool allClear;
 					bool newGame;
+					unsigned int pieceCount;
+					char preciseClearCount;
+					char clearType;
+					char tspinType;
+					char pcType;
+					char b2bType;
 					};
 
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1,01 BY CLYMAX";
+const char strRevisionAuthor[] PROGMEM ="SCORING EDITION V1.01 BY CLYMAX";
 const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
 //const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
 //const char strWebsite[] PROGMEM ="RetroAchievements.org";
@@ -1056,6 +1083,18 @@ void processAnimations(unsigned char f){
 }
 
 
+
+/*
+state 3
+preciseClearCount; animfields
+char clearType; animfields
+char tspinType; animfields
+
+state 4
+char pcType; updateFields
+char b2bType; updateFields
+*/
+
 void runStateMachine(){
 	unsigned char next,op;
 	// fix
@@ -1065,6 +1104,11 @@ void runStateMachine(){
 	
 	switch(next){
 		case 0:
+			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
+			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
+			fields[f].tspinType=TSPIN_INAPPLICABLE;
+			fields[f].pcType=PC_INAPPLICABLE;
+			fields[f].b2bType=B2B_INAPPLICABLE;
 			//fix
 			printFields();
 			if(processGravity()==true){
@@ -1082,6 +1126,8 @@ void runStateMachine(){
 
 		case 1:
 			if(lockBlock()==true){
+				//probe
+				fields[f].pieceCount++;
 				fields[f].subState=0;
 				next=3;
 			}
@@ -1115,6 +1161,13 @@ void runStateMachine(){
 			}
 			break;	
 		case 6:
+			/*
+			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
+			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
+			fields[f].tspinType=TSPIN_INAPPLICABLE;
+			fields[f].pcType=PC_INAPPLICABLE;
+			fields[f].b2bType=B2B_INAPPLICABLE;
+			*/
 			issueNewBlock(NEW_BLOCK);
 			updateGhostPiece(false);
 			next=0;
@@ -1183,6 +1236,7 @@ void initFields(void){
 		//fields[x].animClearLinesPhase=INACTIVE;
 		
 		fields[x].newGame = true;
+		fields[x].pieceCount = 0;
 	}
 
 	//set field specifics
@@ -1999,6 +2053,7 @@ bool lineFull(int y){
 	return full;
 }
 
+
 //animate the cleared lines
 bool animFields(void){
 	unsigned char y,size,tile,temp;
@@ -2014,13 +2069,37 @@ bool animFields(void){
 		case 0: //0 ... 1:
 			//animate
 			fields[f].lastClearCount=0;
+			fields[f].preciseClearCount=0;
 			for(y=0;y<size;y++){
 				if(lineFull(fields[f].currBlockY+y)){				
 					fill(fields[f].left,y+fields[f].currBlockY+fields[f].top,FIELD_WIDTH,1,10);			
 					fields[f].lastClearCount++;
+					fields[f].preciseClearCount++;
 				}		
 			}
 
+			if (fields[f].tSpin==true){
+				fields[f].tspinType = TSPIN_PRESENT;
+			}
+			else {
+				fields[f].tspinType = TSPIN_ABSENT;
+			}
+			if (fields[f].lastClearCount==1) {
+				fields[f].clearType = CLEAR_TYPE_SINGLE;
+			}
+			else if (fields[f].lastClearCount==2) {
+				fields[f].clearType = CLEAR_TYPE_DOUBLE;
+			}
+			else if (fields[f].lastClearCount==3) {
+				fields[f].clearType = CLEAR_TYPE_TRIPLE;
+			}
+			else if (fields[f].lastClearCount==4) {
+				fields[f].clearType = CLEAR_TYPE_TETRIS;
+			}
+			else {
+				fields[f].clearType = CLEAR_TYPE_NONE;
+			}
+			
 			if(fields[f].tSpin==true){
 				startAnimation(ANIM_T_SPIN);
 				TriggerFx(19,0xff,true);
@@ -2202,6 +2281,10 @@ bool updateFields(void){
 						TriggerFx(fx,0xff,true);
 
 						startAnimation(ANIM_BACK_TO_BACK);
+						fields[f].b2bType = B2B_PRESENT;
+					}
+					else {
+						fields[f].b2bType = B2B_ABSENT;
 					}
 					
 					// all clear
@@ -2209,6 +2292,10 @@ bool updateFields(void){
 						garbageLines+=10;
 						
 						startAnimation(ANIM_ALL_CLEAR);
+						fields[f].pcType = PC_PRESENT;
+					}
+					else {
+						fields[f].pcType = PC_ABSENT;
 					}
 	
 					//send garbage lines to the other field(in 2 players mode)
