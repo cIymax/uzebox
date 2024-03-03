@@ -397,7 +397,7 @@ const char strUseGhostBlock[] PROGMEM="GHOST BLOCK:";
 const char strYes[] PROGMEM = "YES";
 const char strNo[] PROGMEM = "NO ";
 const char strScoringMode[] PROGMEM="SCORING MODE:";
-const char strAdvanced[] PROGMEM = "ARCADE";
+const char strAdvanced[] PROGMEM = "ARCADE  ";
 const char strOriginal[] PROGMEM = "ORIGINAL";
 
 const char strContinue[] PROGMEM ="RESUME";
