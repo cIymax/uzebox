@@ -361,6 +361,8 @@ struct fieldStruct {
 					char pcType;
 					char b2bType;
 					char hardDropDistance;
+					int combo;
+					unsigned char lastLastClearCount;
 					};
 
 struct fieldStruct fields[2];
@@ -1241,6 +1243,8 @@ void initFields(void){
 		fields[x].newGame = true;
 		fields[x].pieceCount = 0;
 		fields[x].hardDropDistance = 0;
+		fields[x].combo = -1;
+		fields[x].lastLastClearCount = 0;
 	}
 
 	//set field specifics
@@ -2077,6 +2081,8 @@ bool animFields(void){
 		
 		case 0: //0 ... 1:
 			//animate
+			fields[f].lastLastClearCount = fields[f].lastClearCount;
+			
 			fields[f].lastClearCount=0;
 			fields[f].preciseClearCount=0;
 			for(y=0;y<size;y++){
@@ -2324,6 +2330,14 @@ bool updateFields(void){
 				//update score, lines, etc
 				if(clearCount!=0){
 					fields[f].lines+=clearCount;
+					
+					//combo scoring
+					//if (fields[f].lastLastClearCount!=0) {
+					fields[f].combo++;
+					//}
+					if (fields[f].useAdvancedMode && fields[f].combo>=1) {
+						fields[f].score+=(50*fields[f].combo*(fields[f].level+1));
+					}
 
 					if(clearCount==1){
 						if(fields[f].useAdvancedMode==true && fields[f].tSpin==true) {
@@ -2406,9 +2420,10 @@ bool updateFields(void){
 				return true;
 		
 		}
-	}else{
+	}else{ // clear count is zero
 		fields[f].tSpin=false;
 		fields[f].allClear=false;
+		fields[f].combo=-1;
 		return true;
 	}
 
