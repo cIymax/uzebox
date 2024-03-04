@@ -306,7 +306,7 @@ struct fieldStruct {
 					unsigned char currentState;
 					unsigned char subState;	
 					unsigned char lastClearCount;
-					bool hardDroppped;
+					bool hardDropped;
 					char nextBlock;
 					unsigned char currBlock;
 					char holdBlock;
@@ -360,6 +360,7 @@ struct fieldStruct {
 					char tspinType;
 					char pcType;
 					char b2bType;
+					char hardDropDistance;
 					};
 
 struct fieldStruct fields[2];
@@ -408,9 +409,10 @@ const char strRestart[] PROGMEM ="RESTART";
 //const char strP2Prefix[] PROGMEM = "P2 ";
 
 //import tunes
+//exclude tunes to make rom space
 //#include "data/Korobeiniki-3tracks.inc"
 #include "data/testrisnt.inc"
-#include "data/ending.inc"
+//#include "data/ending.inc"
 
 //import tiles & maps
 #include "data/fonts.pic.inc"
@@ -762,7 +764,8 @@ void DrawMainMenu(){
 	Print(12,22,strCopyright);
 //	Print(7,23,strLicence);
 	//Print(7,24,strRevisionAuthor);
-	Print(4,24,strRevisionAuthor);
+	//Print(4,24,strRevisionAuthor);
+	Print(5,24,strRevisionAuthor);
 	Print(7,26,strWebsite);
 
 	//draw tetris TITLE
@@ -1161,13 +1164,13 @@ void runStateMachine(){
 			}
 			break;	
 		case 6:
-			/*
+			// can be omitted to save rom space
 			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
 			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
 			fields[f].tspinType=TSPIN_INAPPLICABLE;
 			fields[f].pcType=PC_INAPPLICABLE;
 			fields[f].b2bType=B2B_INAPPLICABLE;
-			*/
+			
 			issueNewBlock(NEW_BLOCK);
 			updateGhostPiece(false);
 			next=0;
@@ -1237,6 +1240,7 @@ void initFields(void){
 		
 		fields[x].newGame = true;
 		fields[x].pieceCount = 0;
+		fields[x].hardDropDistance = 0;
 	}
 
 	//set field specifics
@@ -1319,7 +1323,7 @@ bool processGravity(void){
 bool lockBlock(void){
 	
 
-	//if(fields[f].hardDroppped==true)fields[f].subState=8;
+	//if(fields[f].hardDropped==true)fields[f].subState=8;
 
 
 
@@ -1349,7 +1353,8 @@ bool lockBlock(void){
 
 			fields[f].currLockDelay=0;
 			fields[f].locking=false;
-			fields[f].hardDroppped=false;
+			fields[f].hardDropped=false;
+			fields[f].hardDropDistance=0;
 
 			//detect potential t-spin
 			if(fields[f].currBlock==T_TETRAMINO && fields[f].lastOpIsRotation==true){
@@ -1578,7 +1583,7 @@ void updateGhostPiece(bool restore){
 void hardDrop(void){
 	//TriggerFx(6,0xa0,true);
 
-	int y=fields[f].currBlockY;		
+	int y=fields[f].currBlockY, z=fields[f].currBlockY;
 	while(1){		
 		if(!fitCheck(fields[f].currBlockX,y,fields[f].currBlock,fields[f].currBlockRotation)) break;
 		y++;
@@ -1589,8 +1594,12 @@ void hardDrop(void){
 	fields[f].locking=false;
 	fields[f].currLockDelay=0;
 	fields[f].currGravity=0;
-	fields[f].hardDroppped=true;
+	fields[f].hardDropped=true;
+	fields[f].hardDropDistance=y-1-z;
 
+	if (fields[f].useAdvancedMode && fields[f].hardDropped) {
+		fields[f].score+=fields[f].hardDropDistance*2;
+	}
 }
 
 void hold(void){
@@ -2195,7 +2204,9 @@ bool updateFields(void){
 		size=FIELD_HEIGHT-fields[f].currBlockY;
 	}
 
-
+	//if (fields[f].useAdvancedMode && fields[f].hardDropped) {
+	//	fields[f].score+=fields[f].hardDropDistance*2;
+	//}
 
 	clearCount=fields[f].lastClearCount;
 	if(clearCount>0){
@@ -2588,7 +2599,7 @@ void doGameOver(void){
 	
 	WaitVsyncAndProcessAnimations(25);
 
-	StartSong(song_ending);
+	//StartSong(song_ending);
 
 	//clear field with stars animation
 	for(t=0;t<FIELD_HEIGHT+5;t++){
