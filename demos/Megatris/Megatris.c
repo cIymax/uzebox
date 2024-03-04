@@ -363,6 +363,8 @@ struct fieldStruct {
 					char hardDropDistance;
 					int combo;
 					unsigned char lastLastClearCount;
+					bool softDropped;
+					char softDropDistance;
 					};
 
 struct fieldStruct fields[2];
@@ -1245,6 +1247,8 @@ void initFields(void){
 		fields[x].hardDropDistance = 0;
 		fields[x].combo = -1;
 		fields[x].lastLastClearCount = 0;
+		fields[x].softDropped = false;
+		fields[x].softDropDistance = 0;
 	}
 
 	//set field specifics
@@ -1820,8 +1824,19 @@ unsigned char processControls(void){
 		if(fields[f].softDropDelay>SOFT_DROP_DELAY){		
 			dispY=1;
 			fields[f].softDropDelay=0;
+			
+			// soft drop
+			fields[f].softDropped = true;
+			
+			if (fields[f].softDropDistance==0) {
+				fields[f].softDropDistance = fields[f].currBlockY;
+			}
 		}
 		//randomSeed+=41;
+	}
+	else {
+		fields[f].softDropped = false;
+		fields[f].softDropDistance = 0;
 	}
 
 	if((dispX!=0 || dispY!=0) && moveBlock(fields[f].currBlockX+dispX,fields[f].currBlockY+dispY)){
@@ -2091,6 +2106,14 @@ bool animFields(void){
 					fields[f].lastClearCount++;
 					fields[f].preciseClearCount++;
 				}		
+			}
+			
+			if (fields[f].softDropped) {
+				fields[f].softDropDistance = fields[f].currBlockY - fields[f].softDropDistance;
+				
+				if (fields[f].useAdvancedMode) {
+					fields[f].score+=fields[f].softDropDistance;
+				}
 			}
 
 			if (fields[f].tSpin==true){
