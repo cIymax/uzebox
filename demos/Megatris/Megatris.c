@@ -1169,11 +1169,13 @@ void runStateMachine(){
 			break;	
 		case 6:
 			// can be omitted to save rom space
+			/*
 			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
 			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
 			fields[f].tspinType=TSPIN_INAPPLICABLE;
 			fields[f].pcType=PC_INAPPLICABLE;
 			fields[f].b2bType=B2B_INAPPLICABLE;
+			*/
 			
 			issueNewBlock(NEW_BLOCK);
 			updateGhostPiece(false);
@@ -1879,7 +1881,14 @@ unsigned char processControls(void){
 		TriggerFx(5,0x40,true);
 		rotateBlock(rot);
 	}
-
+	
+	//new: process 180 rotation
+	if(joy&BTN_SL && !(fields[f].lastButtons&BTN_SL)){
+		rot=fields[f].currBlockRotation+2;
+		if(rot>=4) rot-=4;
+		TriggerFx(5,0x40,true);
+		rotateBlock(rot);
+	}
 	
 	fields[f].lastButtons=joy;
 	
