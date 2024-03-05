@@ -1674,8 +1674,9 @@ void pause(){
 	restoreFields();
 
 	Print(cx+1,cy,strContinue);
-	Print(cx+1,cy+1,strRestart);
-	Print(cx+1,cy+2,strMenu);
+	//Print(cx+1,cy+1,strRestart);
+	Print(cx+1,cy+1,strMenu);
+	//Print(cx+1,cy+2,strMenu);
 
 	while((ReadJoypad(0)&BTN_START));
 
@@ -1711,7 +1712,8 @@ void pause(){
 				return;
 			}else if(option==1){
 				fields[0].gameOver=true;
-				restart=true;
+				//restart=true;
+				goMenu=true;
 				return;
 			}else{
 				fields[0].gameOver=true;
