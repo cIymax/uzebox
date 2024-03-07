@@ -221,6 +221,7 @@ const struct tetraminoStruct tetraminos[] PROGMEM={
 #define ANIMATE_NONE 0
 
 #define FIELD_HEIGHT 22
+//#define FIELD_HEIGHT 24
 #define FIELD_WIDTH 10
 #define NEW_BLOCK -1
 #define NO_BLOCK -1
@@ -301,6 +302,7 @@ void restoreFields(void);
 void printFields();
 bool updateFieldsEvent(void);
 void processAnimations(unsigned char f);
+void resetSubStates(void);
 
 struct fieldStruct {
 					unsigned char currentState;
@@ -340,6 +342,7 @@ struct fieldStruct {
 					unsigned char backToBack;
 					unsigned char garbageQueue;
 					unsigned char surface[22][10];
+					//unsigned char surface[24][10];
 					unsigned char nextBlockPosX;
 					unsigned char nextBlockPosY;
 					unsigned char holdBlockPosX;
@@ -1111,11 +1114,7 @@ void runStateMachine(){
 	
 	switch(next){
 		case 0:
-			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
-			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
-			fields[f].tspinType=TSPIN_INAPPLICABLE;
-			fields[f].pcType=PC_INAPPLICABLE;
-			fields[f].b2bType=B2B_INAPPLICABLE;
+			resetSubStates();
 			//fix
 			printFields();
 			if(processGravity()==true){
@@ -1168,14 +1167,8 @@ void runStateMachine(){
 			}
 			break;	
 		case 6:
-			// can be omitted to save rom space
-			/*
-			fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
-			fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
-			fields[f].tspinType=TSPIN_INAPPLICABLE;
-			fields[f].pcType=PC_INAPPLICABLE;
-			fields[f].b2bType=B2B_INAPPLICABLE;
-			*/
+			// can be omitted to save rom space?
+			resetSubStates();			
 			
 			issueNewBlock(NEW_BLOCK);
 			updateGhostPiece(false);
@@ -1191,7 +1184,13 @@ void runStateMachine(){
 	fields[f].currentState=next;
 }
 
-
+void resetSubStates(void) {
+	fields[f].preciseClearCount=CLEAR_INAPPLICABLE;
+	fields[f].clearType=CLEAR_TYPE_INAPPLICABLE;
+	fields[f].tspinType=TSPIN_INAPPLICABLE;
+	fields[f].pcType=PC_INAPPLICABLE;
+	fields[f].b2bType=B2B_INAPPLICABLE;
+}
 
 void initFields(void){
 	int x,y;
@@ -1559,6 +1558,7 @@ void issueNewBlock(int block){
 
 	fields[f].currBlockX=3;
 	fields[f].currBlockY=0;
+	//fields[f].currBlockY=-1;
 	fields[f].currBlockRotation=0;
 	fields[f].kickUp=false;
 	fields[f].canHold=true;
