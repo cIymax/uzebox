@@ -274,7 +274,7 @@ bool updateFields(void);
 void initFields(void);
 bool moveBlock(int dispX,int dispY);
 void issueNewBlock(int block);
-bool lockBlock(void);
+bool lockBlock(bool in_hardDropped, char in_hardDropDistance);
 void doGameOver(void);
 bool rotateBlock(int newRotation);
 bool fitCheck(int x,int y,int block,int rotation);
@@ -373,7 +373,7 @@ struct fieldStruct {
 struct fieldStruct fields[2];
 
 const char strCopyright[] PROGMEM ="2008 ALEC BOURQUE";
-const char strRevisionAuthor[] PROGMEM ="ARCADE EDITION V1.01 BY CLYMAX";
+const char strRevisionAuthor[] PROGMEM ="ARCADE EDITION V1.03 BY CLYMAX";
 const char strWebsite[] PROGMEM ="FOR RETROACHIEVEMENTS.ORG";
 //const char strRevisionAuthor[] PROGMEM ="Scoring Edition by clymax for";
 //const char strWebsite[] PROGMEM ="RetroAchievements.org";
@@ -417,9 +417,9 @@ const char strRestart[] PROGMEM ="RESTART";
 
 //import tunes
 //exclude tunes to make rom space
-//#include "data/Korobeiniki-3tracks.inc"
-#include "data/testrisnt.inc"
-//#include "data/ending.inc"
+#include "data/Korobeiniki-3tracks.inc"
+//#include "data/testrisnt.inc"
+#include "data/ending.inc"
 
 //import tiles & maps
 #include "data/fonts.pic.inc"
@@ -561,7 +561,8 @@ void StartSongNo(unsigned char songNo){
 
 	switch(songNo){
 		case 0:
-			StartSong(song_testrisnt);
+			//StartSong(song_testrisnt);
+			StartSong(song_korobeiniki);
 			break;				
 		//case 1:
 		//	StartSong(song_korobeiniki);
@@ -1121,19 +1122,44 @@ void runStateMachine(){
 				TriggerFx(4,0x90,true);
 				fields[f].subState=0;
 				next=1;
+				//next=2;
 				break;				
 			}
 			
 			op=processControls();
 			if(op==1){
-				next=7;
+				next=7; //1
 			}
 			break;
-
+		/*
 		case 1:
-			if(lockBlock()==true){
+			hardDrop();
+			TriggerFx(4,0x90,true);
+			fields[f].subState=0;
+			//next=1;
+			next=3;
+			break;
+		*/
+		//case 2:
+		case 1:
+			// no hard drop
+			if(lockBlock(false, 0)==true){
 				//probe
-				fields[f].pieceCount++;
+				//fields[f].pieceCount++;
+				fields[f].subState=0;
+				next=3;
+			}
+			/*
+			else {
+				next=7; //1
+			}
+			*/
+			break;
+		case 2:
+			// hard drop
+			if(lockBlock(true, fields[f].hardDropDistance)==true){
+				//probe
+				//fields[f].pieceCount++;
 				fields[f].subState=0;
 				next=3;
 			}
@@ -1178,7 +1204,8 @@ void runStateMachine(){
 			hardDrop();
 			TriggerFx(4,0x90,true);
 			fields[f].subState=0;
-			next=1;
+			//next=1;
+			next=2;
 	}
 	
 	fields[f].currentState=next;
@@ -1329,13 +1356,9 @@ bool processGravity(void){
 	return false;
 }
 
-bool lockBlock(void){
+bool lockBlock(bool in_hardDropped, char in_hardDropDistance){
 	
-
 	//if(fields[f].hardDropped==true)fields[f].subState=8;
-
-
-
 	switch(fields[f].subState){
 
 		case 0:
@@ -1362,8 +1385,15 @@ bool lockBlock(void){
 
 			fields[f].currLockDelay=0;
 			fields[f].locking=false;
-			fields[f].hardDropped=false;
-			fields[f].hardDropDistance=0;
+			
+			if (in_hardDropped) {
+				fields[f].hardDropped=in_hardDropped;
+				fields[f].hardDropDistance=in_hardDropDistance;
+			}
+			else {
+				fields[f].hardDropped=false;
+				fields[f].hardDropDistance=0;
+			}
 
 			//detect potential t-spin
 			if(fields[f].currBlock==T_TETRAMINO && fields[f].lastOpIsRotation==true){
@@ -1381,7 +1411,8 @@ bool lockBlock(void){
 				}
 			}
 
-
+			fields[f].pieceCount++;
+			//fields[f].subState=0;
 			return true;
 	}
 
@@ -1599,17 +1630,25 @@ void hardDrop(void){
 		y++;
 	}
 	
+	bool temp_lastOp = fields[f].lastOpIsRotation;
 	moveBlock(fields[f].currBlockX,y-1);
 	
 	fields[f].locking=false;
-	fields[f].currLockDelay=0;
+	fields[f].currLockDelay=0;	
 	fields[f].currGravity=0;
 	fields[f].hardDropped=true;
 	fields[f].hardDropDistance=y-1-z;
+	
+	if (fields[f].hardDropDistance==0) {
+		fields[f].lastOpIsRotation = temp_lastOp;
+	}
 
+	//lockBlock(true, y-1-z);
+	
 	if (fields[f].useAdvancedMode && fields[f].hardDropped) {
 		fields[f].score+=fields[f].hardDropDistance*2;
 	}
+
 }
 
 void hold(void){
@@ -1730,13 +1769,15 @@ void pause(){
 
 			if(c&BTN_UP){
 				if(option==0){
-					option=2;
+					//option=2;
+					option=1;
 				}else{
 					option--;
 				}
 
 			}else if(c&BTN_DOWN || c&BTN_SELECT){
-				if(option==2){
+				//if(option==2){
+				if(option==1){
 					option=0;
 				}else{
 					option++;
@@ -2649,7 +2690,7 @@ void doGameOver(void){
 	
 	WaitVsyncAndProcessAnimations(25);
 
-	//StartSong(song_ending);
+	StartSong(song_ending);
 
 	//clear field with stars animation
 	for(t=0;t<FIELD_HEIGHT+5;t++){
